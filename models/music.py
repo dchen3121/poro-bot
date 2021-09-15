@@ -1,20 +1,20 @@
 import discord
 from discord.ext import commands
-from models.youtube import YTDLSource
+from models.ytdl import YTDLSource
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(aliases=['p', 'stream', 'yt'])
-    async def play(self, ctx, *, url):
-        """Streams from a youtube url"""
+    async def play(self, ctx, *, search_keyword):
+        """Streams from a youtube link"""
 
         async with ctx.typing():
-            player = await YTDLSource.from_url(url, loop=self.bot.loop, stream=True)
+            player, url = await YTDLSource.search(search_keyword, loop=self.bot.loop, stream=True)
             ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
-        await ctx.send(f'{ctx.message.author.mention} Now playing: {player.title}')
+        await ctx.send(f'{ctx.message.author.mention} Now playing: {player.title}\n{url}')
 
     @commands.command(aliases=['vol'])
     async def volume(self, ctx, volume: int):
