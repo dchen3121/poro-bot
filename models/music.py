@@ -72,6 +72,17 @@ class Music(commands.Cog):
         if ctx.voice_client.is_connected() and ctx.voice_client.is_playing() and self.player.title and self.url:
             await ctx.send(f'Now playing: {self.player.title}\n{self.url}')
 
+    @commands.command(aliases=['q'])
+    async def queue(self, ctx):
+        """Shows the current playing queue"""
+        if ctx.voice_client.is_connected() and ctx.voice_client.is_playing():
+            msg = f'Now playing: {self.player.title}\n{self.url}\n'
+            if self.song_queue:
+                for i, song in enumerate(self.song_queue):
+                    player, _ = song
+                    msg += f'{i + 1}: {player.title}\n'
+            await ctx.send(msg)
+
     @play.before_invoke
     async def ensure_voice(self, ctx):
         if ctx.voice_client is None:
