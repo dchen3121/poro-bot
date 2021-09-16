@@ -9,6 +9,7 @@ youtube-dl = "*"
 python-dotenv = "*"
 pynacl = "*"
 ffmpeg-python = "*"
+requests = "*"
 
 [dev-packages]
 

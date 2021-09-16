@@ -26,9 +26,9 @@ async def on_message(message):
         return
 
     if W:
-        if 'when ' in message.content.lower():
+        if any(when_str in message.content.lower() for when_str in {'when ', 'when\'', 'when?'}) or message.content.lower().endswith('when'):
             await message.channel.send('Soon')
-        if any(who_str in message.content.lower() for who_str in {'who ', 'who\'', 'whos'}) or message.content.lower().endswith('who'):
+        if any(who_str in message.content.lower() for who_str in {'who ', 'who\'', 'whos', 'who?'}) or message.content.lower().endswith('who'):
             await message.channel.send('Me, Poro')
 
     if PORO_REACT:

@@ -1,5 +1,6 @@
 import urllib.request
 import urllib.parse
+import requests
 import re
 import asyncio
 
@@ -40,11 +41,30 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.title = data.get('title')
         self.url = data.get('url')
 
+    def valid_youtube_url(url):
+        is_valid_url = 'youtube.com' in url and 'Video unavailable' not in requests.get(url).text
+        return is_valid_url
+
     @classmethod
     async def search(cls, search_keyword, *, loop=None, stream=True):
-        html = urllib.request.urlopen("https://www.youtube.com/results?search_query=" + urllib.parse.quote(search_keyword))
-        video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
-        url = f'https://www.youtube.com/watch?v={video_ids[0]}'
+        if cls.valid_youtube_url(search_keyword):
+            return await cls.search_url(search_keyword, loop=loop, stream=stream)
+        else:
+            html = urllib.request.urlopen("https://www.youtube.com/results?search_query=" + urllib.parse.quote(search_keyword))
+            video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+            url = f'https://www.youtube.com/watch?v={video_ids[0]}'
+            loop = loop or asyncio.get_event_loop()
+            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+
+            # if a playlist, take first item
+            if 'entries' in data:
+                data = data['entries'][0]
+
+            filename = data['url'] if stream else ytdl.prepare_filename(data)
+            return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data), url
+
+    @classmethod
+    async def search_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
@@ -54,15 +74,3 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data), url
-
-    # @classmethod
-    # async def search_url(cls, url, *, loop=None, stream=True):
-    #     loop = loop or asyncio.get_event_loop()
-    #     data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
-    #     # if a playlist, take first item
-    #     if 'entries' in data:
-    #         data = data['entries'][0]
-
-    #     filename = data['url'] if stream else ytdl.prepare_filename(data)
-    #     return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
