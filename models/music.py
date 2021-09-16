@@ -6,13 +6,20 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.song_queue = deque()
+        self.player = None
+        self.url = None
 
     def play_next(self, ctx):
         if self.song_queue:
             player, url = self.song_queue.popleft()
+            self.player = player
+            self.url = url
             # async with ctx.typing():
             #     await ctx.send(f'Now playing: {player.title}\n{url}')
             ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
+        else:
+            self.player = None
+            self.url = None
 
     @commands.command(aliases=['p', 'stream', 'yt'])
     async def play(self, ctx, *, search_keyword):
@@ -24,6 +31,8 @@ class Music(commands.Cog):
             await ctx.send(f'{ctx.message.author.mention} Added song to back of current playing queue: {player.title}')
             self.song_queue.append((player, url))
         else:
+            self.player = player
+            self.url = url
             async with ctx.typing():
                 await ctx.send(f'{ctx.message.author.mention} Now playing: {player.title}\n{url}')
 
@@ -57,6 +66,12 @@ class Music(commands.Cog):
         if ctx.voice_client.is_connected():
             await ctx.voice_client.disconnect()
 
+    @commands.command(aliases=['nowplaying'])
+    async def now_playing(self, ctx):
+        """Shows the song and url currently playing"""
+        if ctx.voice_client.is_connected() and ctx.voice_client.is_playing() and self.player.title and self.url:
+            await ctx.send(f'Now playing: {self.player.title}\n{self.url}')
+
     @play.before_invoke
     async def ensure_voice(self, ctx):
         if ctx.voice_client is None:
@@ -70,6 +85,7 @@ class Music(commands.Cog):
     @resume.before_invoke
     @stop.before_invoke
     @skip.before_invoke
+    @now_playing.before_invoke
     async def check_voice(self, ctx):
         if not ctx.author.voice:
             await ctx.send('You are not connected to a voice channel :frowning:')
