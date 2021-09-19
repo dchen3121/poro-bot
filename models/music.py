@@ -2,7 +2,6 @@ from discord.ext import commands
 from models.ytdl import YTDLSource
 from collections import deque
 from static.constants import SONG_QUEUES
-import asyncio
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -15,8 +14,8 @@ class Music(commands.Cog):
             SONG_QUEUES[guild_id] = deque()
 
         song_queue = SONG_QUEUES[guild_id]
+        song_queue.popleft()
         if song_queue:
-            song_queue.popleft()
             player, url = song_queue[0]
             # async with ctx.typing():
             #     await ctx.send(f'Now playing: {player.title}\n{url}')
