@@ -1,25 +1,26 @@
 from discord.ext import commands
 from models.ytdl import YTDLSource
 from collections import deque
+from static.constants import SONG_QUEUES
+import asyncio
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.song_queue = deque()
-        self.player = None
-        self.url = None
 
-    def play_next(self, ctx):
-        if self.song_queue:
-            player, url = self.song_queue.popleft()
-            self.player = player
-            self.url = url
+    def play_next(self, ctx, guild_id=None):
+        if not guild_id:
+            guild_id = ctx.guild.id
+        if guild_id not in SONG_QUEUES:
+            SONG_QUEUES[guild_id] = deque()
+
+        song_queue = SONG_QUEUES[guild_id]
+        if song_queue:
+            song_queue.popleft()
+            player, url = song_queue[0]
             # async with ctx.typing():
             #     await ctx.send(f'Now playing: {player.title}\n{url}')
-            ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
-        else:
-            self.player = None
-            self.url = None
+            ctx.voice_client.play(player, after=lambda e: self.play_next(ctx, guild_id))
 
     @commands.command(aliases=['p', 'stream', 'yt'])
     async def play(self, ctx, *, search_keyword):
@@ -27,16 +28,16 @@ class Music(commands.Cog):
         async with ctx.typing():
             player, url = await YTDLSource.search(search_keyword, loop=self.bot.loop, stream=True)
 
-        if ctx.voice_client.is_playing() or self.song_queue:
-            await ctx.send(f'{ctx.message.author.mention} Added song to back of current playing queue: {player.title}')
-            self.song_queue.append((player, url))
-        else:
-            self.player = player
-            self.url = url
-            async with ctx.typing():
-                await ctx.send(f'{ctx.message.author.mention} Now playing: {player.title}\n{url}')
+        if ctx.guild.id not in SONG_QUEUES:
+            SONG_QUEUES[ctx.guild.id] = deque()
+        SONG_QUEUES[ctx.guild.id].append((player, url))
 
-            ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
+        if ctx.voice_client.is_playing():
+            await ctx.send(f'{ctx.message.author.mention} Added song to back of current playing queue: {player.title}')
+        else:
+            async with ctx.typing():
+                ctx.voice_client.play(player, after=lambda e: self.play_next(ctx))
+                await ctx.send(f'{ctx.message.author.mention} Now playing: {player.title}\n{url}')
 
     @commands.command(help='Pauses the current audio playing')
     async def pause(self, ctx):
@@ -63,25 +64,28 @@ class Music(commands.Cog):
     @commands.command(aliases=['dc', 'disconnect'])
     async def stop(self, ctx):
         """Stops and disconnects the bot from voice"""
-        if ctx.voice_client.is_connected():
-            await ctx.voice_client.disconnect()
+        SONG_QUEUES[ctx.guild.id] = deque()
+        await ctx.voice_client.disconnect()
 
-    @commands.command(aliases=['nowplaying'])
+    @commands.command(aliases=['nowplaying', 'np'])
     async def now_playing(self, ctx):
         """Shows the song and url currently playing"""
-        if ctx.voice_client.is_connected() and ctx.voice_client.is_playing() and self.player.title and self.url:
-            await ctx.send(f'Now playing: {self.player.title}\n{self.url}')
+        if ctx.voice_client.is_connected() and ctx.voice_client.is_playing():
+            player, url = SONG_QUEUES[ctx.guild.id][0]
+            await ctx.send(f'Now playing: {player.title}\n{url}')
 
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
         """Shows the current playing queue"""
         if ctx.voice_client.is_connected() and ctx.voice_client.is_playing():
-            msg = f'Now playing: {self.player.title}\n{self.url}\n'
-            if self.song_queue:
-                for i, song in enumerate(self.song_queue):
+            song_queue = SONG_QUEUES[ctx.guild.id]
+            msg = ''
+            if song_queue:
+                for i, song in enumerate(song_queue):
                     player, _ = song
                     msg += f'{i + 1}: {player.title}\n'
-            await ctx.send(msg)
+            if msg:
+                await ctx.send(msg)
 
     @play.before_invoke
     async def ensure_voice(self, ctx):

@@ -43,10 +43,10 @@ async def on_message(message):
             await message.channel.send(f'Hi {message.content[im_index + 3:].strip()}, I\'m Poro!')
         if 'i\'m ' in message.content.lower():
             im_index = message.content.lower().find('i\'m ')
-            await message.channel.send(f'Hi {message.content[im_index + 3:].strip()}, I\'m Poro!')
+            await message.channel.send(f'Hi {message.content[im_index + 4:].strip()}, I\'m Poro!')
         if 'i am ' in message.content.lower():
             im_index = message.content.lower().find('i am ')
-            await message.channel.send(f'Hi {message.content[im_index + 3:].strip()}, I\'m Poro!')
+            await message.channel.send(f'Hi {message.content[im_index + 5:].strip()}, I\'m Poro!')
         if any(fk_off_str in message.content.lower() for fk_off_str in {'fuck off', 'fk off', 'fuck right off', 'fck off'}):
             await message.channel.send('Who\'s off (゜。゜)?')
 
