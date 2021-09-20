@@ -9,6 +9,10 @@ from models.music import Music
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
+W = os.getenv('W', 'False').lower() in ('true', '1', 't')
+PORO_REACT = os.getenv('PORO_REACT', 'False').lower() in ('true', '1', 't')
+DAD_JOKES = os.getenv('DAD_JOKEES', 'False').lower() in ('true', '1', 't')
+F = os.getenv('F', 'False').lower() in ('true', '1', 't')
 
 
 bot = commands.Bot(command_prefix=PREFIX)
@@ -47,6 +51,8 @@ async def on_message(message):
         if 'i am ' in message.content.lower():
             im_index = message.content.lower().find('i am ')
             await message.channel.send(f'Hi {message.content[im_index + 5:].strip()}, I\'m Poro!')
+
+    if F:
         if any(fk_off_str in message.content.lower() for fk_off_str in {'fuck off', 'fk off', 'fuck right off', 'fck off'}):
             await message.channel.send('Who\'s off (゜。゜)?')
 

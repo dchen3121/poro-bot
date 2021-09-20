@@ -1,7 +1,2 @@
 PREFIX="!"
-
-DAD_JOKES=True
-W=True
-PORO_REACT=True
-
 SONG_QUEUES={}
